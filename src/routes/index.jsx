@@ -10,6 +10,7 @@ import SalesAdd from '@/Pages/SalesMan/SalesManAdd';
 import Sales from '@/Pages/Sales/Sales';
 import SalesMan from '@/Pages/SalesMan/SalesMan';
 import SalesManAdd from '@/Pages/SalesMan/SalesManAdd';
+import WishList from '@/Pages/WishList/WishList';
 
 
 // Protected Route Wrapper
@@ -46,6 +47,8 @@ export const router = createBrowserRouter([
       { path: 'sales', element: <Sales /> },
       { path: 'sales/add', element: <SalesAdd /> },
       { path: 'sales/:id/edit', element: <SalesAdd /> },
+      
+      { path: 'wishlist', element: <WishList /> },
     ],
   },
   {

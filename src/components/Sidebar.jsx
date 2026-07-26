@@ -12,6 +12,7 @@ const menuItems = [
   { name: 'Visits', path: '/visits', icon: <Calendar size={20} />, dataKey: 'visitCount' },
   { name: 'Sales Man', path: '/sales-man', icon: <TrendingUp size={20} />, dataKey: 'salesCount' },
   { name: 'Sales', path: '/sales', icon: <TrendingUp size={20} />, dataKey: 'salesCount' },
+  { name: 'Wish List', path: '/wishlist', icon: <Heart size={20} /> },
 
 ];
 
