@@ -1,14 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DataTable } from "@/components/DataTable";
 import { DeleteDialog } from "@/components/DeleteDialog";
 import { useGet } from "@/hooks/useGet";
 import { useMutation } from "@/hooks/useMutation";
-import { MapPin, StickyNote } from "lucide-react";
+import { MapPin, StickyNote, Search } from "lucide-react";
 import { toast } from "sonner";
 
-// استيراد مكونات الـ Dialog والمكونات الإضافية للزرار
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
     Dialog,
     DialogContent,
@@ -23,34 +23,52 @@ const statusColors = {
     "Deliverd": "bg-green-100 text-green-800",
 };
 
-const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleString("ar-EG", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-};
-
 const Visits = () => {
     const navigate = useNavigate();
 
-    // ---- Filter State ----
+    // ---- Filter, Search & Pagination States ----
     const [selectedSalesFilter, setSelectedSalesFilter] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState(""); 
+    const [page, setPage] = useState(1);
 
-    // ---- Notes State (FIX 1: إضافته هنا بدلاً من نسيه) ----
+    // ---- Notes State ----
     const [selectedNotes, setSelectedNotes] = useState(null);
 
-    // ---- Get Visits Data (Dynamic based on filter) ----
-    const visitsApiUrl = selectedSalesFilter
-        ? `/api/admin/visits?sales_id=${selectedSalesFilter}`
-        : "/api/admin/visits";
+    // ---- Debounce Search Input (تأخير إرسال الطلب لعدم تكرار الطلبات بشكل مفرط) ----
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+            setPage(1); // إعادة التعيين للصفحة 1 ليبحث في القاعدة بأكملها
+        }, 500);
 
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
+
+    // ---- Build Query Parameters for Backend ----
+    const queryParams = new URLSearchParams();
+    queryParams.append("page", page.toString());
+    queryParams.append("limit", "10");
+    
+    if (selectedSalesFilter) {
+        queryParams.append("sales_id", selectedSalesFilter);
+    }
+    
+    if (debouncedSearch.trim()) {
+        queryParams.append("search", debouncedSearch.trim());
+    }
+
+    const visitsApiUrl = `/api/admin/visits?${queryParams.toString()}`;
+
+    // ---- Fetch Visits Data from Backend ----
     const { data: response, loading: isLoading, refresh } = useGet(visitsApiUrl);
     const visits = response?.data?.allVisits || [];
+    const paginationData = response?.data?.pagination || { total: 0, page: 1, limit: 10, totalPages: 1 };
+
+    const handleFilterChange = (e) => {
+        setSelectedSalesFilter(e.target.value);
+        setPage(1);
+    };
 
     // ---- Get Status & Sales Lists ----
     const { data: listsResponse } = useGet("/api/admin/visits/lists");
@@ -86,13 +104,12 @@ const Visits = () => {
         }
     };
 
-    // ---- Update Status flow ----
+    // ---- Update Status flows ----
     const handleStatusChange = async (visit, newStatusId) => {
-        const payload = { status_id: newStatusId };
         const result = await updateVisit({
             method: "PUT",
             url: `/api/admin/visits/${visit.id}`,
-            data: payload,
+            data: { status_id: newStatusId },
         });
 
         if (result.success) {
@@ -104,11 +121,10 @@ const Visits = () => {
     };
 
     const handleSalesStatusChange = async (visit, newStatus) => {
-        const payload = { status: newStatus };
         const result = await updateVisit({
             method: "PUT",
             url: `/api/admin/visits/${visit.id}`,
-            data: payload,
+            data: { status: newStatus },
         });
 
         if (result.success) {
@@ -120,11 +136,10 @@ const Visits = () => {
     };
 
     const handleSalesChange = async (visit, newSalesId) => {
-        const payload = { sales_id: newSalesId };
         const result = await updateVisit({
             method: "PUT",
             url: `/api/admin/visits/${visit.id}`,
-            data: payload,
+            data: { sales_id: newSalesId },
         });
 
         if (result.success) {
@@ -171,8 +186,8 @@ const Visits = () => {
             accessorKey: "status",
             header: "Sales Status",
             render: (row) => {
-                const currentStatus = sales_statues.find((s) => s.name === row.status);
-                const currentStatusId = currentStatus ? currentStatus.id : row.status || "";
+                const currentStatus = sales_statues.find((s) => s === row.status);
+                const currentStatusId = currentStatus ? currentStatus : row.status || "";
 
                 return (
                     <select
@@ -264,24 +279,40 @@ const Visits = () => {
 
     return (
         <div className="container mx-auto py-10">
-            {/* Sales Filter Section */}
-            <div className="mb-4 flex items-center gap-3 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                <label htmlFor="sales-filter" className="text-sm font-semibold text-gray-700">
-                    Filter by Sales:
-                </label>
-                <select
-                    id="sales-filter"
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[200px]"
-                    value={selectedSalesFilter}
-                    onChange={(e) => setSelectedSalesFilter(e.target.value)}
-                >
-                    <option value="">All Sales (Show All)</option>
-                    {salesList.map((s) => (
-                        <option key={s.id} value={s.id}>
-                            {s.name}
-                        </option>
-                    ))}
-                </select>
+            {/* Controls Section: Filter & Search (هنا يتم التحكم بالبحث في الـ Backend) */}
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                
+                {/* Sales Filter */}
+                <div className="flex items-center gap-3">
+                    <label htmlFor="sales-filter" className="text-sm font-semibold text-gray-700">
+                        Filter by Sales:
+                    </label>
+                    <select
+                        id="sales-filter"
+                        className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[200px]"
+                        value={selectedSalesFilter}
+                        onChange={handleFilterChange}
+                    >
+                        <option value="">All Sales (Show All)</option>
+                        {salesList.map((s) => (
+                            <option key={s.id} value={s.id}>
+                                {s.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Search Input (Backend Search) */}
+                <div className="flex items-center gap-2 relative min-w-[250px]">
+                    <Search className="absolute left-3 h-4 w-4 text-gray-400" />
+                    <Input
+                        type="text"
+                        placeholder="Search by name, phone or sales..."
+                        className="pl-9"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
             </div>
 
             <DataTable
@@ -292,7 +323,35 @@ const Visits = () => {
                 columns={columns}
                 data={visits}
                 isLoading={isLoading}
+                search_auto={false}        // تعطيل الفلتر الداخلي
+                showSearchInput={false}    // إخفاء حقل البحث المزدوج من داخل الجدول
             />
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between mt-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                <div className="text-sm text-gray-600">
+                    Showing page <span className="font-semibold">{paginationData.page}</span> of{" "}
+                    <span className="font-semibold">{paginationData.totalPages || 1}</span> (Total: {paginationData.total})
+                </div>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((old) => Math.max(old - 1, 1))}
+                        disabled={page === 1 || isLoading}
+                    >
+                        Previous
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((old) => Math.min(old + 1, paginationData.totalPages))}
+                        disabled={page >= paginationData.totalPages || isLoading}
+                    >
+                        Next
+                    </Button>
+                </div>
+            </div>
 
             {/* Delete Dialog */}
             <DeleteDialog
