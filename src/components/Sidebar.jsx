@@ -1,23 +1,44 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Heart, Calendar, Target, CheckCircle,
-  TrendingUp, Award, Shield, UserCog, LayoutDashboard, Menu
+  TrendingUp, Award, Shield, UserCog, LayoutDashboard, Menu,
+  FileText, Clock, History, ChevronDown
 } from 'lucide-react';
 import { useGet } from '@/hooks/useGet';
 
 const menuItems = [
   { name: 'Dashboard', path: '/home', icon: <LayoutDashboard size={20} /> },
-  // تعديل dataKey ليطابق visitCount الراجع من الـ API
   { name: 'Visits', path: '/visits', icon: <Calendar size={20} />, dataKey: 'visitCount' },
   { name: 'Sales Man', path: '/sales-man', icon: <TrendingUp size={20} />, dataKey: 'salesCount' },
   { name: 'Sales', path: '/sales', icon: <TrendingUp size={20} />, dataKey: 'salesCount' },
   { name: 'Wish List', path: '/wishlist', icon: <Heart size={20} /> },
 
+  // قسم Requests مع القائمة المنسدلة
+  {
+    name: 'Requests',
+    icon: <FileText size={20} />,
+    children: [
+      { name: 'Pending Requests', path: '/requests', icon: <Clock size={18} />, dataKey: 'pendingRequestsCount' },
+      { name: 'History Requests', path: '/history-requests', icon: <History size={18} />, dataKey: 'historyRequestsCount' },
+    ]
+  }
 ];
 
 export const Sidebar = ({ isOpen, toggleSidebar }) => {
   const { data, loading } = useGet('/api/admin/visits/report');
+  
+  // حالة فتح وإغلاق قائمة Requests
+  const [isRequestsOpen, setIsRequestsOpen] = useState(false);
+
+  const toggleRequestsMenu = () => {
+    if (!isOpen) {
+      toggleSidebar();
+      setIsRequestsOpen(true);
+    } else {
+      setIsRequestsOpen((prev) => !prev);
+    }
+  };
 
   return (
     <aside className={`h-screen bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col fixed left-0 top-0 transition-all duration-300 z-50 ${isOpen ? 'w-64' : 'w-20'}`}>
@@ -35,7 +56,65 @@ export const Sidebar = ({ isOpen, toggleSidebar }) => {
 
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
-          // التعديل هنا: الوصول للـ Key الداخلي data.data
+          // في حالة وجود قائمة فرعية (Children)
+          if (item.children) {
+            return (
+              <div key={item.name} className="flex flex-col">
+                {/* الزر الرئيسي لـ Requests */}
+                <button
+                  onClick={toggleRequestsMenu}
+                  title={!isOpen ? item.name : ""}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {item.icon}
+                    {isOpen && <span className="font-medium">{item.name}</span>}
+                  </div>
+                  {isOpen && (
+                    <ChevronDown
+                      size={18}
+                      className={`transition-transform duration-200 ${isRequestsOpen ? 'rotate-180' : ''}`}
+                    />
+                  )}
+                </button>
+
+                {/* العناصر الفرعية داخل Requests */}
+                {isOpen && isRequestsOpen && (
+                  <div className="ml-4 pl-2 border-l-2 border-zinc-200 dark:border-zinc-800 space-y-1 mt-1">
+                    {item.children.map((subItem) => {
+                      const badgeCount = subItem.dataKey && data?.data ? data.data[subItem.dataKey] : null;
+
+                      return (
+                        <NavLink
+                          key={subItem.name}
+                          to={subItem.path}
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                              isActive
+                                ? 'bg-primary/10 text-primary font-medium'
+                                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                            }`
+                          }
+                        >
+                          {subItem.icon}
+                          <div className="flex flex-1 items-center justify-between truncate">
+                            <span>{subItem.name}</span>
+                            {badgeCount !== null && badgeCount !== undefined && (
+                              <span className="bg-primary text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                {loading ? '...' : badgeCount}
+                              </span>
+                            )}
+                          </div>
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // العناصر العادية
           const badgeCount = item.dataKey && data?.data ? data.data[item.dataKey] : null;
 
           return (
@@ -56,7 +135,6 @@ export const Sidebar = ({ isOpen, toggleSidebar }) => {
                 <div className="flex flex-1 items-center justify-between truncate">
                   <span>{item.name}</span>
 
-                  {/* عرض الـ Badge عند وجود القيمة */}
                   {badgeCount !== null && badgeCount !== undefined && (
                     <span className="bg-primary text-white text-xs font-bold px-2 py-0.5 rounded-full">
                       {loading ? '...' : badgeCount}

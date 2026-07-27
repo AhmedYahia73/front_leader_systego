@@ -11,6 +11,8 @@ import Sales from '@/Pages/Sales/Sales';
 import SalesMan from '@/Pages/SalesMan/SalesMan';
 import SalesManAdd from '@/Pages/SalesMan/SalesManAdd';
 import WishList from '@/Pages/WishList/WishList';
+import PendingRequests from '@/Pages/StatusRequests/Requests';
+import HistoryRequests from '@/Pages/StatusRequests/HistoryRequests';
 
 
 // Protected Route Wrapper
@@ -33,6 +35,10 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/home" replace /> },
       { path: 'home', element: <Home /> },
+ 
+      // reequests
+      { path: 'requests', element: <PendingRequests /> },
+      { path: 'history-requests', element: <HistoryRequests /> },
 
       // visits
       { path: 'visits', element: <Visits /> },
