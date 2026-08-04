@@ -20,6 +20,14 @@ const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
+  try {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user?.role !== 'leader') {
+      return <Navigate to="/login" replace />;
+    }
+  } catch (error) {
+    return <Navigate to="/login" replace />;
+  }
   return children;
 };
 
