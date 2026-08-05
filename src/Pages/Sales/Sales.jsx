@@ -35,7 +35,7 @@ const Visits = () => {
 
     // ---- Month & Year Filter States ----
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-    const [selectedMonth, setSelectedMonth] = useState("");
+    const [selectedMonths, setSelectedMonths] = useState([]);
 
     const months = [
         { value: "01", label: "Jan" },
@@ -78,14 +78,9 @@ const Visits = () => {
         queryParams.append("search", debouncedSearch.trim());
     }
 
-    if (selectedMonth && selectedYear) {
-        // حساب أول يوم وآخر يوم في الشهر المُختار
-        const startDate = `${selectedYear}-${selectedMonth}-01`;
-        const lastDay = new Date(parseInt(selectedYear), parseInt(selectedMonth), 0).getDate();
-        const endDate = `${selectedYear}-${selectedMonth}-${lastDay}`;
-        
-        queryParams.append("from", startDate);
-        queryParams.append("to", endDate);
+    if (selectedMonths.length > 0 && selectedYear) {
+        queryParams.append("months", selectedMonths.join(','));
+        queryParams.append("year", selectedYear);
     }
 
     // 🎯 تم الحفاظ على المسار الخاص بك وإضافة الـ Params له
@@ -338,20 +333,30 @@ const Visits = () => {
                 
                 <div className="flex flex-wrap gap-2">
                     <button
-                        className={`px-3 py-1.5 text-sm rounded-md transition-colors ${selectedMonth === "" ? "bg-red-500 text-white font-medium shadow-md" : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"}`}
-                        onClick={() => { setSelectedMonth(""); setPage(1); }}
+                        className={`px-3 py-1.5 text-sm rounded-md transition-colors ${selectedMonths.length === 0 ? "bg-red-500 text-white font-medium shadow-md" : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"}`}
+                        onClick={() => { setSelectedMonths([]); setPage(1); }}
                     >
                         All Months
                     </button>
-                    {months.map(m => (
-                        <button
-                            key={m.value}
-                            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${selectedMonth === m.value ? "bg-red-500 text-white font-medium shadow-md" : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"}`}
-                            onClick={() => { setSelectedMonth(m.value); setPage(1); }}
-                        >
-                            {m.label}
-                        </button>
-                    ))}
+                    {months.map(m => {
+                        const isSelected = selectedMonths.includes(m.value);
+                        return (
+                            <button
+                                key={m.value}
+                                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${isSelected ? "bg-red-500 text-white font-medium shadow-md" : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"}`}
+                                onClick={() => { 
+                                    if (isSelected) {
+                                        setSelectedMonths(selectedMonths.filter(x => x !== m.value));
+                                    } else {
+                                        setSelectedMonths([...selectedMonths, m.value]);
+                                    }
+                                    setPage(1);
+                                }}
+                            >
+                                {m.label}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 

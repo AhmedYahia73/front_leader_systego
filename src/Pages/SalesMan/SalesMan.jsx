@@ -215,6 +215,16 @@ const SalesmanDetailsDialog = ({ isOpen, onClose, salesman }) => {
         }
     }, [isOpen]);
 
+    // Fetch totals
+    const visitsUrl = salesman ? `/api/admin/visits?sales_id=${salesman.id}&limit=1` : null;
+    const salesUrl = salesman ? `/api/admin/visits/sales?sales_id=${salesman.id}&limit=1` : null;
+
+    const { data: visitsResponse } = useGet(visitsUrl);
+    const { data: salesResponse } = useGet(salesUrl);
+
+    const totalVisits = visitsResponse?.data?.pagination?.total || 0;
+    const totalSales = salesResponse?.data?.pagination?.total || 0;
+
     if (!isOpen || !salesman) return null;
 
     return (
@@ -290,6 +300,7 @@ const SalesmanDetailsDialog = ({ isOpen, onClose, salesman }) => {
                                             <MapPin className="h-8 w-8" />
                                         </div>
                                         <h3 className="text-xl font-bold text-gray-800">Visits</h3>
+                                        <div className="text-2xl font-bold text-blue-600">{totalVisits}</div>
                                         <p className="text-sm text-gray-500 text-center">View and manage all visits for this sales man.</p>
                                     </CardContent>
                                 </Card>
@@ -303,6 +314,7 @@ const SalesmanDetailsDialog = ({ isOpen, onClose, salesman }) => {
                                             <BarChart className="h-8 w-8" />
                                         </div>
                                         <h3 className="text-xl font-bold text-gray-800">Sales</h3>
+                                        <div className="text-2xl font-bold text-purple-600">{totalSales}</div>
                                         <p className="text-sm text-gray-500 text-center">View and manage all sales records for this sales man.</p>
                                     </CardContent>
                                 </Card>
