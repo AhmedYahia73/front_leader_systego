@@ -333,20 +333,45 @@ const SalesmanDetailsDialog = ({ isOpen, onClose, salesman }) => {
 // Sub-component to fetch and render the paginated list
 const ListView = ({ type, salesman }) => {
     const [page, setPage] = useState(1);
+    const [items, setItems] = useState([]);
 
     const apiUrl = type === 'visits' 
         ? `/api/admin/visits?sales_id=${salesman.id}&page=${page}&limit=10`
         : `/api/admin/visits/sales?sales_id=${salesman.id}&page=${page}&limit=10`;
 
     const { data: response, loading } = useGet(apiUrl);
-    const items = response?.data?.allVisits || [];
     const paginationData = response?.data?.pagination || { total: 0, page: 1, limit: 10, totalPages: 1 };
 
-    if (loading) {
-        return <div className="flex justify-center p-8">Loading...</div>;
+    React.useEffect(() => {
+        const newItems = response?.data?.allVisits || [];
+        if (page === 1) {
+            setItems(newItems);
+        } else {
+            setItems(prev => {
+                const existingIds = new Set(prev.map(p => p.id));
+                const uniqueNewItems = newItems.filter(n => !existingIds.has(n.id));
+                return [...prev, ...uniqueNewItems];
+            });
+        }
+    }, [response, page]);
+
+    const observer = React.useRef();
+    const lastItemRef = React.useCallback(node => {
+        if (loading) return;
+        if (observer.current) observer.current.disconnect();
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && page < paginationData.totalPages) {
+                setPage(prev => prev + 1);
+            }
+        });
+        if (node) observer.current.observe(node);
+    }, [loading, page, paginationData.totalPages]);
+
+    if (loading && page === 1 && items.length === 0) {
+        return <div className="flex justify-center p-8 text-gray-500 font-medium">Loading...</div>;
     }
 
-    if (items.length === 0) {
+    if (items.length === 0 && !loading) {
         return (
             <div className="text-center p-8 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
                 No {type} found for this salesman.
@@ -355,65 +380,49 @@ const ListView = ({ type, salesman }) => {
     }
 
     return (
-        <div className="flex flex-col gap-4">
-            <div className="overflow-x-auto rounded-md border border-gray-200">
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 text-gray-700">
-                        <tr>
-                            <th className="px-4 py-3 font-semibold">Name</th>
-                            <th className="px-4 py-3 font-semibold">Phone</th>
-                            <th className="px-4 py-3 font-semibold">Address</th>
-                            <th className="px-4 py-3 font-semibold">Status</th>
-                            <th className="px-4 py-3 font-semibold">Sales Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {items.map((item) => (
-                            <tr key={item.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 font-medium text-gray-800">{item.name}</td>
-                                <td className="px-4 py-3 text-gray-600">{item.phone}</td>
-                                <td className="px-4 py-3 text-gray-600">{item.address}</td>
-                                <td className="px-4 py-3">
-                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-                                        {item.visit_status || "N/A"}
+        <div className="flex flex-col gap-4 pb-4">
+            <div className="grid grid-cols-1 gap-4 mt-2">
+                {items.map((item, index) => {
+                    const isLast = items.length === index + 1;
+                    return (
+                        <div 
+                            key={item.id} 
+                            ref={isLast ? lastItemRef : null}
+                            className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group"
+                        >
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-purple-500 group-hover:w-1.5 transition-all" />
+                            <div className="flex justify-between items-start mb-2 pl-2">
+                                <div>
+                                    <h4 className="text-lg font-bold text-gray-800">{item.name}</h4>
+                                    {item.phone && (
+                                        <div className="text-sm text-gray-500 mt-1 flex items-center gap-1.5">
+                                            <Phone className="w-3.5 h-3.5"/> 
+                                            {item.phone}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex flex-col gap-2 items-end">
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
+                                        type === 'visits' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-purple-50 text-purple-700 border border-purple-200'
+                                    }`}>
+                                        {type === 'visits' ? (item.visit_status || "N/A") : (item.status || "N/A")}
                                     </span>
-                                </td>
-                                <td className="px-4 py-3">
-                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700">
-                                        {item.status || "N/A"}
-                                    </span>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                </div>
+                            </div>
+                            {item.address && (
+                                <div className="mt-3 ml-2 bg-gray-50 p-3 rounded-lg text-sm text-gray-600 flex items-start gap-2 border border-gray-100">
+                                    <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                                    <span>{item.address}</span>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
-
-            {/* Pagination Controls */}
-            {items.length > 0 && (
-                <div className="flex items-center justify-between mt-2 bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm">
-                    <div className="text-sm text-gray-600">
-                        Showing page <span className="font-semibold">{paginationData.page}</span> of{" "}
-                        <span className="font-semibold">{paginationData.totalPages || 1}</span> (Total: {paginationData.total})
-                    </div>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPage((old) => Math.max(old - 1, 1))}
-                            disabled={page === 1 || loading}
-                        >
-                            Previous
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPage((old) => Math.min(old + 1, paginationData.totalPages))}
-                            disabled={page >= paginationData.totalPages || loading}
-                        >
-                            Next
-                        </Button>
-                    </div>
+            
+            {loading && page > 1 && (
+                <div className="flex justify-center p-4">
+                    <span className="text-gray-500 font-medium animate-pulse">Loading more...</span>
                 </div>
             )}
         </div>
