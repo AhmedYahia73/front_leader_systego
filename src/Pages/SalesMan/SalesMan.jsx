@@ -70,24 +70,24 @@ const SalesMan = () => {
     };
 
     return (
-        <div className="container mx-auto py-10">
+        <div className="w-full max-w-7xl mx-auto py-4 sm:py-6 space-y-4 sm:space-y-6">
             {/* Header section with add button */}
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Sales Management</h1>
-                <Button onClick={() => navigate("/sales-man/add")}>Add Sales Man</Button>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Sales Management</h1>
+                <Button onClick={() => navigate("/sales-man/add")} className="w-full sm:w-auto">Add Sales Man</Button>
             </div>
 
             {/* Controls Section: Filter & Search */}
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-xl border border-gray-200 shadow-xs">
                 
                 {/* Leader Filter */}
-                <div className="flex items-center gap-3">
-                    <label htmlFor="leader-filter" className="text-sm font-semibold text-gray-700">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                    <label htmlFor="leader-filter" className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
                         Filter by Leader:
                     </label>
                     <select
                         id="leader-filter"
-                        className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[200px]"
+                        className="border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white w-full sm:w-auto sm:min-w-[200px]"
                         value={selectedLeaderFilter}
                         onChange={handleFilterChange}
                     >
@@ -101,12 +101,12 @@ const SalesMan = () => {
                 </div>
 
                 {/* Search Input (Backend Search) */}
-                <div className="flex items-center gap-2 relative min-w-[250px]">
+                <div className="flex items-center gap-2 relative w-full sm:w-72">
                     <Search className="absolute left-3 h-4 w-4 text-gray-400" />
                     <Input
                         type="text"
                         placeholder="Search sales by name, email, or phone..."
-                        className="pl-9"
+                        className="pl-9 h-10 w-full text-xs sm:text-sm"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -169,17 +169,18 @@ const SalesMan = () => {
 
             {/* Pagination Controls */}
             {sales.length > 0 && (
-                <div className="flex items-center justify-between mt-8 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                    <div className="text-sm text-gray-600">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 sm:mt-8 bg-white p-3.5 sm:p-4 rounded-xl border border-gray-200 shadow-xs">
+                    <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
                         Showing page <span className="font-semibold">{paginationData.page}</span> of{" "}
                         <span className="font-semibold">{paginationData.totalPages || 1}</span> (Total: {paginationData.total})
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full sm:w-auto justify-center">
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setPage((old) => Math.max(old - 1, 1))}
                             disabled={page === 1 || isLoading}
+                            className="flex-1 sm:flex-initial"
                         >
                             Previous
                         </Button>
@@ -188,6 +189,7 @@ const SalesMan = () => {
                             size="sm"
                             onClick={() => setPage((old) => Math.min(old + 1, paginationData.totalPages))}
                             disabled={page >= paginationData.totalPages || isLoading}
+                            className="flex-1 sm:flex-initial"
                         >
                             Next
                         </Button>

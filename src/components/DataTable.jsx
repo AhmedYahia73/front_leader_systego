@@ -32,10 +32,10 @@ export const DataTable = ({
     <div className="space-y-4 w-full">
       {/* العنوان وزر الإضافة */}
       {(title || (showAdd && onAdd)) && (
-        <div className="flex justify-between items-center mb-4">
-          {title && <h2 className="text-xl font-bold">{title}</h2>}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          {title && <h2 className="text-lg sm:text-xl font-bold text-gray-800">{title}</h2>}
           {showAdd && onAdd && (
-            <Button onClick={onAdd} className="gap-2">
+            <Button onClick={onAdd} className="gap-2 w-full sm:w-auto">
               <Plus className="h-4 w-4" /> Add
             </Button>
           )}
@@ -44,7 +44,7 @@ export const DataTable = ({
 
       {/* يظهر حقل البحث الداخلي فقط إذا كان مفعلاً ومطلوباً للفلترة المحلية */}
       {showSearchInput && search_auto && (
-        <div className="relative w-full max-w-sm">
+        <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             placeholder={searchPlaceholder}
@@ -56,8 +56,9 @@ export const DataTable = ({
       )}
 
       {/* الجدول */}
-      <div className="rounded-xl border overflow-hidden bg-white">
-        <Table>
+      <div className="rounded-xl border overflow-hidden bg-white shadow-xs">
+        <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
+          <Table>
           <TableHeader>
             <TableRow>
               {columns.map((col, index) => (
@@ -116,6 +117,7 @@ export const DataTable = ({
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
     </div>
   );
